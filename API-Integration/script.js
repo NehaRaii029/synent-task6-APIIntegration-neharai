@@ -28,6 +28,9 @@ const loadingText =
 const errorText =
     document.getElementById("errorText");
 
+const suggestions =
+    document.getElementById("suggestions");
+
 searchBtn.addEventListener("click", () => {
 
     const city =
@@ -46,6 +49,19 @@ searchBtn.addEventListener("click", () => {
 
     getWeather(city);
 });
+
+cityInput.addEventListener(
+    "keypress",
+    (event) => {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            searchBtn.click();
+        }
+    }
+);
 
 async function getWeather(city) {
 
@@ -101,3 +117,66 @@ async function getWeather(city) {
             "";
     }
 }
+cityInput.addEventListener(
+    "input",
+    async () => {
+
+        const query =
+            cityInput.value.trim();
+
+        suggestions.innerHTML =
+            "";
+
+        if (query.length < 2) return;
+
+        try {
+
+            const response =
+                await fetch(
+`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=5`
+                );
+
+            const data =
+                await response.json();
+
+            if (!data.results) return;
+
+            data.results.forEach(city => {
+
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+                item.classList.add(
+                    "suggestion-item"
+                );
+
+                item.textContent =
+`${city.name}, ${city.country}`;
+
+                item.addEventListener(
+                    "click",
+                    () => {
+
+                        cityInput.value =
+                            city.name;
+
+                        suggestions.innerHTML =
+                            "";
+                    }
+                );
+
+                suggestions.appendChild(
+                    item
+                );
+            });
+
+        }
+
+        catch (error) {
+
+            console.log(error);
+        }
+    }
+);

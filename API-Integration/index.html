@@ -14,15 +14,22 @@
 
         <div class="search-box">
 
-            <input
-                type="text"
-                id="cityInput"
-                placeholder="Enter city name"
-            >
+           <div class="input-wrapper">
 
-            <button id="searchBtn">
-                Search
-            </button>
+              <input
+                 type="text"
+                 id="cityInput"
+                 placeholder="Enter city name"
+                 autocomplete="off"
+              >
+
+               <div id="suggestions"></div>
+
+            </div>
+
+           <button id="searchBtn">
+               Search
+           </button>
 
         </div>
 
