@@ -1,11 +1,8 @@
-const searchBtn =
-    document.getElementById("searchBtn");
-
 const cityInput =
     document.getElementById("cityInput");
 
-const weatherCard =
-    document.getElementById("weatherCard");
+const searchBtn =
+    document.getElementById("searchBtn");
 
 const cityName =
     document.getElementById("cityName");
@@ -22,6 +19,9 @@ const humidity =
 const wind =
     document.getElementById("wind");
 
+const weatherCard =
+    document.getElementById("weatherCard");
+
 const loadingText =
     document.getElementById("loadingText");
 
@@ -31,6 +31,12 @@ const errorText =
 const suggestions =
     document.getElementById("suggestions");
 
+let lat;
+let lon;
+let timer;
+
+
+
 searchBtn.addEventListener(
     "click",
     () => {
@@ -38,38 +44,53 @@ searchBtn.addEventListener(
         const city =
             cityInput.value.trim();
 
-        if (city === "") {
+        if (!city) {
 
             errorText.textContent =
-                "Please enter a city name";
-
-            weatherCard.style.display =
-                "none";
+                "Please enter city name";
 
             return;
         }
 
-        getWeather(city);
+        if (lat && lon) {
+
+            getWeather(
+                lat,
+                lon,
+                city
+            );
+        }
     }
 );
+
+
 
 cityInput.addEventListener(
     "keypress",
     (event) => {
 
-        if (event.key === "Enter") {
+        if (
+            event.key === "Enter"
+        ) {
 
             searchBtn.click();
         }
     }
 );
 
-async function getWeather(city) {
+
+
+async function getWeather(
+    latitude,
+    longitude,
+    city
+) {
 
     loadingText.textContent =
-        "Fetching latest weather...";
+        "Loading weather...";
 
-    errorText.textContent = "";
+    errorText.textContent =
+        "";
 
     weatherCard.style.display =
         "none";
@@ -78,117 +99,154 @@ async function getWeather(city) {
 
         const response =
             await fetch(
-`https://wttr.in/${city}?format=j1`
+`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`
             );
 
         const data =
             await response.json();
 
-        const weather =
-            data.current_condition[0];
-
         cityName.textContent =
             city;
 
         temperature.textContent =
-            `${weather.temp_C}°C`;
-
-        condition.textContent =
-            weather.weatherDesc[0].value;
+`${data.current.temperature_2m}°C`;
 
         humidity.textContent =
-            `Humidity: ${weather.humidity}%`;
+`Humidity: ${data.current.relative_humidity_2m}%`;
 
         wind.textContent =
-            `Wind Speed: ${weather.windspeedKmph} km/h`;
+`Wind Speed: ${data.current.wind_speed_10m} km/h`;
+
+        condition.textContent =
+            getWeatherCondition(
+                data.current.weather_code
+            );
 
         weatherCard.style.display =
             "block";
     }
 
-    catch (error) {
+    catch {
 
         errorText.textContent =
-            "Unable to fetch weather data";
+            "Could not fetch weather";
     }
 
-    finally {
-
-        loadingText.textContent =
-            "";
-    }
+    loadingText.textContent =
+        "";
 }
+
+
 
 cityInput.addEventListener(
     "input",
-    async () => {
+    () => {
 
-        const query =
-            cityInput.value.trim();
+        clearTimeout(timer);
 
-        suggestions.innerHTML =
-            "";
+        timer =
+            setTimeout(
+                async () => {
 
-        if (query.length < 2) {
+                    const query =
+                        cityInput.value
+                            .trim();
 
-            return;
-        }
+                    suggestions.innerHTML =
+                        "";
 
-        try {
+                    if (
+                        query.length < 1
+                    ) return;
 
-            const response =
-                await fetch(
-`https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1&limit=5`
-                );
+                    try {
 
-            const data =
-                await response.json();
+                        const response =
+                            await fetch(
+`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=10&language=en`
+                            );
 
-            data.forEach(place => {
+                        const data =
+                            await response.json();
 
-                const item =
-                    document.createElement(
-                        "div"
-                    );
+                        if (
+                            !data.results
+                        ) return;
 
-                item.classList.add(
-                    "suggestion-item"
-                );
+                        data.results.forEach(
+                            city => {
 
-                const location =
-                    place.display_name
-                        .split(",")
-                        .slice(0, 2)
-                        .join(",");
+                                const item =
+                                    document.createElement(
+                                        "div"
+                                    );
 
-                item.textContent =
-                    location;
+                                item.className =
+                                    "suggestion-item";
 
-                item.addEventListener(
-                    "click",
-                    () => {
+                                item.textContent =
+`${city.name}, ${city.admin1 || city.country}`;
 
-                        cityInput.value =
-                            place.name ||
-                            location.split(",")[0];
+                                item.onclick =
+                                    () => {
 
-                        suggestions.innerHTML =
-                            "";
+                                        cityInput.value =
+                                            city.name;
 
-                        searchBtn.click();
+                                        lat =
+                                            city.latitude;
+
+                                        lon =
+                                            city.longitude;
+
+                                        suggestions.innerHTML =
+                                            "";
+
+                                        getWeather(
+                                            lat,
+                                            lon,
+                                            city.name
+                                        );
+                                    };
+
+                                suggestions.appendChild(
+                                    item
+                                );
+                            }
+                        );
+
                     }
-                );
 
-                suggestions.appendChild(
-                    item
-                );
-            });
+                    catch {
 
-        }
+                        console.log(
+                            "Error loading cities"
+                        );
+                    }
 
-        catch (error) {
-
-            console.log(error);
-        }
+                },
+                200
+            );
     }
 );
+
+
+
+function getWeatherCondition(
+    code
+) {
+
+    if (code === 0)
+        return "Clear Sky";
+
+    if (code <= 3)
+        return "Cloudy";
+
+    if (code <= 65)
+        return "Rainy";
+
+    if (code <= 75)
+        return "Snow";
+
+    return "Weather Unavailable";
+}
