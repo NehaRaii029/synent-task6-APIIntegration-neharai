@@ -31,32 +31,33 @@ const errorText =
 const suggestions =
     document.getElementById("suggestions");
 
-searchBtn.addEventListener("click", () => {
+searchBtn.addEventListener(
+    "click",
+    () => {
 
-    const city =
-        cityInput.value.trim();
+        const city =
+            cityInput.value.trim();
 
-    if (city === "") {
+        if (city === "") {
 
-        errorText.textContent =
-            "Please enter a city name";
+            errorText.textContent =
+                "Please enter a city name";
 
-        weatherCard.style.display =
-            "none";
+            weatherCard.style.display =
+                "none";
 
-        return;
+            return;
+        }
+
+        getWeather(city);
     }
-
-    getWeather(city);
-});
+);
 
 cityInput.addEventListener(
     "keypress",
     (event) => {
 
-        if (
-            event.key === "Enter"
-        ) {
+        if (event.key === "Enter") {
 
             searchBtn.click();
         }
@@ -66,7 +67,7 @@ cityInput.addEventListener(
 async function getWeather(city) {
 
     loadingText.textContent =
-        "Loading weather data...";
+        "Fetching latest weather...";
 
     errorText.textContent = "";
 
@@ -117,6 +118,7 @@ async function getWeather(city) {
             "";
     }
 }
+
 cityInput.addEventListener(
     "input",
     async () => {
@@ -127,21 +129,22 @@ cityInput.addEventListener(
         suggestions.innerHTML =
             "";
 
-        if (query.length < 2) return;
+        if (query.length < 2) {
+
+            return;
+        }
 
         try {
 
             const response =
                 await fetch(
-`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=5`
+`https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1&limit=5`
                 );
 
             const data =
                 await response.json();
 
-            if (!data.results) return;
-
-            data.results.forEach(city => {
+            data.forEach(place => {
 
                 const item =
                     document.createElement(
@@ -152,18 +155,27 @@ cityInput.addEventListener(
                     "suggestion-item"
                 );
 
+                const location =
+                    place.display_name
+                        .split(",")
+                        .slice(0, 2)
+                        .join(",");
+
                 item.textContent =
-`${city.name}, ${city.country}`;
+                    location;
 
                 item.addEventListener(
                     "click",
                     () => {
 
                         cityInput.value =
-                            city.name;
+                            place.name ||
+                            location.split(",")[0];
 
                         suggestions.innerHTML =
                             "";
+
+                        searchBtn.click();
                     }
                 );
 
