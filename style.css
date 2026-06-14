@@ -74,6 +74,11 @@ h1 {
 
 .search-box button:hover {
     background: #1d4ed8;
+    transform: translateY(-2px);
+}
+
+.search-box button:active {
+    transform: scale(0.98);
 }
 
 .weather-card {
